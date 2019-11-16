@@ -1,0 +1,77 @@
+version:
+jobs:
+  initial:
+    docker:
+    - image: circleci/ruby:2.4.1
+    steps:
+    - checkout
+    - run: echo "Prueba de comandos"
+    - run:
+        name: test one
+        command: |
+          ssh -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null ubuntu@ec2-100-25-43-172.compute-1.amazonaws.com "touch ~/hola |
+          ls | 
+          hostname -i"            
+  developdeploy:
+    docker:
+    - image: circleci/ruby:2.4.1
+    steps:
+    - checkout
+    - add_ssh_keys:
+        fingerprints:
+        - d7:78:96:12:2d:73:19:01:c2:41:25:5a:2a:f0:28:a8
+    - run:
+        name: despliegue desarrollo
+        command: |
+          ssh -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null ubuntu@ec2-100-25-43-172.compute-1.amazonaws.com sudo chmod 777 /var/www/html
+          scp -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -r index.html ubuntu@ec2-100-25-43-172.compute-1.amazonaws.com:/var/www/html
+          scp -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -r view ubuntu@ec2-100-25-43-172.compute-1.amazonaws.com:/var/www/html
+  
+  production-deploy1:
+    docker:
+    - image: circleci/ruby:2.4.1
+    steps:
+    - checkout
+    - add_ssh_keys:
+        fingerprints:
+        - f3:86:b9:d3:9a:ca:9f:e8:3a:88:83:e2:48:e4:b0:1f
+    - run:
+        name: despliegue 1
+        command: |
+          ssh -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null ubuntu@3.15.202.172 sudo chmod 777 /var/www/html
+          scp -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -r index.html ubuntu@3.15.202.172:/var/www/html
+          scp -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -r view ubuntu@3.15.202.172:/var/www/html
+  production-deploy2:
+    docker:
+    - image: circleci/ruby:2.4.1
+    steps:
+    - checkout
+    - add_ssh_keys:
+        fingerprints:
+        - f3:86:b9:d3:9a:ca:9f:e8:3a:88:83:e2:48:e4:b0:1f
+    - run:
+        name: despliegue 1
+        command: |
+          ssh -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null ubuntu@18.188.143.11 sudo chmod 777 /var/www/html
+          scp -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -r index.html ubuntu@18.188.143.11:/var/www/html
+          scp -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -r view ubuntu@18.188.143.11:/var/www/html
+         
+      
+workflows:
+  version: 2
+  prueba:
+    jobs:
+    - initial
+    - developdeploy:
+        requires:
+        - initial
+    - hold:
+        type: approval
+        requires:
+        - developdeploy
+    - production-deploy1:
+        requires:
+        - hold
+    - production-deploy2:
+        requires:
+        - hold
